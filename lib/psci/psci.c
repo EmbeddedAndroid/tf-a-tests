@@ -256,6 +256,8 @@ void tftf_detect_psci_pstate_format(void)
 {
 	uint32_t power_state;
 	unsigned int ret;
+	int feat;
+	bool osi_mode;
 
 	pstate_format = tftf_psci_get_pstate_format();
 
@@ -267,6 +269,19 @@ void tftf_detect_psci_pstate_format(void)
 		pstate_format_detected = 1;
 		INFO("Extended PSCI power state format detected\n");
 		return;
+	}
+
+	feat = tftf_get_psci_feature_info(SMC_PSCI_CPU_SUSPEND);
+	osi_mode = (feat >= 0) &&
+		((feat & (1U << CPU_SUSPEND_FEAT_OS_INIT_MODE_SHIFT)) != 0U);
+	/* The probe must not prevent later entry to OS-initiated mode. */
+	if (osi_mode) {
+		ret = tftf_psci_set_suspend_mode(PSCI_OS_INIT);
+		if (ret != PSCI_E_SUCCESS) {
+			ERROR("Failed to enter OSI mode before State-ID probe: %d\n",
+			      ret);
+			panic();
+		}
 	}
 
 	tftf_irq_enable_sgi(IRQ_NS_SGI_0, GIC_HIGHEST_NS_PRIORITY);
@@ -299,6 +314,16 @@ void tftf_detect_psci_pstate_format(void)
 	isb();
 
 	tftf_irq_disable_sgi(IRQ_NS_SGI_0);
+
+	if (osi_mode) {
+		unsigned int rc = tftf_psci_set_suspend_mode(PSCI_PLAT_COORD);
+
+		if (rc != PSCI_E_SUCCESS) {
+			ERROR("Failed to restore PC mode after State-ID probe: %d\n",
+			      rc);
+			panic();
+		}
+	}
 
 	/*
 	 * The NULL State-ID returned SUCCESS. Hence State-ID is NULL

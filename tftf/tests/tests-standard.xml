@@ -31,9 +31,10 @@
 
 <testsuites>
 
+  <!-- OSI tests must run before the timer framework calls CPU_SUSPEND. -->
+  &tests-psci;
   &tests-tftf-validation;
   &tests-boot-req;
-  &tests-psci;
   &tests-sdei;
   &tests-rt-instr;
   &tests-trng;

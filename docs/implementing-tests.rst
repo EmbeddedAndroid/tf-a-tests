@@ -108,6 +108,21 @@ description is: "``An example test suite``", add the following 2 lines:
 
 See the template test manifest for reference: ``tftf/tests/tests-template.xml``.
 
+PSCI suspend mode ordering
+-------------------------
+
+PSCI permits entry to OS-initiated mode only before any CPU_SUSPEND call
+since boot or the last mode change. Run OSI tests before tests that call
+CPU_SUSPEND in platform-coordinated mode, including timer framework
+validation and the affinity-info powerdown test. A request for the current
+mode does not reset this history.
+
+For original-format State-ID detection, the startup probe temporarily uses
+OSI when supported, then returns to platform-coordinated mode while only
+the boot CPU is on. This actual mode change clears the probe's history,
+whether its CPU_SUSPEND succeeds or returns an error. Extended-format
+State-ID detection does not call CPU_SUSPEND and needs no mode change.
+
 --------------
 
 *Copyright (c) 2018-2020, Arm Limited. All rights reserved.*
